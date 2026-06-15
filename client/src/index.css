@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Scheherazade+New:wght@400;500;700&display=swap');
+@import 'tailwindcss';
+
+/* Class-based dark mode (toggle the `dark` class on <html>). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Brand */
+  --color-primary: #1b4332;
+  --color-primary-hover: #2d6a4f;
+  --color-primary-soft: #d8f3dc;
+
+  /* Active-ayah accent (teal/green) */
+  --color-accent: #14b8a6;
+
+  /* Reading surfaces */
+  --color-surface: #ffffff;
+  --color-surface-arabic: #fbfaf5; /* warm off-white for Arabic areas */
+
+  /* Fonts */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: 'Scheherazade New', serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-stone-50 text-stone-800 antialiased;
+  font-family: var(--font-sans);
+}
+
+.dark body {
+  @apply bg-slate-900 text-slate-100;
+}
+
+/* Arabic text helper */
+.font-arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+}
