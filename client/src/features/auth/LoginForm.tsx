@@ -48,17 +48,30 @@ export function LoginForm({ redirectTo = '/' }: { redirectTo?: string }) {
         </p>
       )}
       <div>
-        <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300">
+        <label
+          htmlFor="login-email"
+          className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300"
+        >
           Email
         </label>
-        <input type="email" autoComplete="email" className={inputClass} {...register('email')} />
+        <input
+          id="login-email"
+          type="email"
+          autoComplete="email"
+          className={inputClass}
+          {...register('email')}
+        />
         {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300">
+        <label
+          htmlFor="login-password"
+          className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300"
+        >
           Password
         </label>
         <input
+          id="login-password"
           type="password"
           autoComplete="current-password"
           className={inputClass}

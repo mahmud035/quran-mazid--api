@@ -49,24 +49,40 @@ export function RegisterForm() {
         </p>
       )}
       <div>
-        <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300">
+        <label
+          htmlFor="register-name"
+          className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300"
+        >
           Name
         </label>
-        <input autoComplete="name" className={inputClass} {...register('name')} />
+        <input id="register-name" autoComplete="name" className={inputClass} {...register('name')} />
         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300">
+        <label
+          htmlFor="register-email"
+          className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300"
+        >
           Email
         </label>
-        <input type="email" autoComplete="email" className={inputClass} {...register('email')} />
+        <input
+          id="register-email"
+          type="email"
+          autoComplete="email"
+          className={inputClass}
+          {...register('email')}
+        />
         {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>}
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300">
+        <label
+          htmlFor="register-password"
+          className="mb-1 block text-sm font-medium text-stone-600 dark:text-slate-300"
+        >
           Password
         </label>
         <input
+          id="register-password"
           type="password"
           autoComplete="new-password"
           className={inputClass}
