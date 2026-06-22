@@ -95,6 +95,31 @@ jobs:
           platforms: linux/amd64 # box + runners are amd64; no arm64
           cache-from: type=gha,scope=client
           cache-to: type=gha,mode=max,scope=client
+      - name: Trigger Coolify deploy (client)
+        run: |
+          echo "Triggering Coolify deploy for quran-client…"
+          response=$(curl --silent --show-error --write-out "\nHTTP_STATUS:%{http_code}" \
+            --request GET "${{ secrets.COOLIFY_DEPLOY_WEBHOOK_CLIENT }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}")
+          body=$(echo "$response" | sed '$d')
+          status=$(echo "$response" | tail -n1 | cut -d: -f2)
+          echo "Coolify response ($status): $body"
+          # fail loud on non-2xx OR a false-200 rejection body
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Coolify client deploy failed with HTTP $status"; exit 1
+          fi
+          if echo "$body" | grep -qiE 'not allowed|unauthorized|"error"'; then
+            echo "::error::Coolify rejected the client deploy: $body"; exit 1
+          fi
+          echo "Client deploy triggered."
+
+      - name: Notify Discord (client)
+        if: success()
+        run: |
+          curl --silent --show-error \
+            --request POST "${{ secrets.DISCORD_WEBHOOK }}" \
+            --header "Content-Type: application/json" \
+            --data "{\"content\": \"🚀 **quran-client** deployed → https://lab-quran.halalaura.co.uk (\`${GITHUB_SHA::7}\`)\"}"
 
   # ---- server: tsc → node ----
   build-server:
@@ -135,3 +160,27 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha,scope=server
           cache-to: type=gha,mode=max,scope=server
+      - name: Trigger Coolify deploy (server)
+        run: |
+          echo "Triggering Coolify deploy for quran-server…"
+          response=$(curl --silent --show-error --write-out "\nHTTP_STATUS:%{http_code}" \
+            --request GET "${{ secrets.COOLIFY_DEPLOY_WEBHOOK_SERVER }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}")
+          body=$(echo "$response" | sed '$d')
+          status=$(echo "$response" | tail -n1 | cut -d: -f2)
+          echo "Coolify response ($status): $body"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "::error::Coolify server deploy failed with HTTP $status"; exit 1
+          fi
+          if echo "$body" | grep -qiE 'not allowed|unauthorized|"error"'; then
+            echo "::error::Coolify rejected the server deploy: $body"; exit 1
+          fi
+          echo "Server deploy triggered."
+
+      - name: Notify Discord (server)
+        if: success()
+        run: |
+          curl --silent --show-error \
+            --request POST "${{ secrets.DISCORD_WEBHOOK }}" \
+            --header "Content-Type: application/json" \
+            --data "{\"content\": \"🚀 **quran-server** deployed → https://lab-quran-api.halalaura.co.uk (\`${GITHUB_SHA::7}\`)\"}"
