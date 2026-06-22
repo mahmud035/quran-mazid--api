@@ -6,7 +6,12 @@ export const AUTH_COOKIE = 'token';
 const baseOptions: CookieOptions = {
   httpOnly: true,
   secure: config.isProduction,
-  sameSite: config.isProduction ? 'none' : 'lax',
+  // lab-quran + lab-quran-api share the registrable domain halalaura.co.uk → same-site.
+  // Lax cookies ARE sent on that cross-origin-but-same-site fetch, so Lax is sufficient
+  // AND tighter than None: smaller CSRF surface, and unambiguously first-party so privacy
+  // modes (Safari ITP / Firefox ETP / Brave) won't interfere. None is only needed if the
+  // API ever moves to a *different* root domain.
+  sameSite: 'lax',
   path: '/',
 };
 
