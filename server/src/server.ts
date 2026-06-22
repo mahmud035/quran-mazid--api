@@ -7,8 +7,8 @@ async function bootstrap(): Promise<void> {
     await mongoose.connect(config.mongodbUri);
     console.log('✅ Connected to MongoDB');
 
-    app.listen(config.port, () => {
-      console.log(`🚀 Server listening on http://localhost:${config.port}`);
+    app.listen(config.port, '0.0.0.0', () => {
+      console.log(`🚀 Server listening on http://0.0.0.0:${config.port}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

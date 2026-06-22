@@ -5,10 +5,15 @@ import { config } from '../config';
 import { AppError } from '../utils/AppError';
 
 /**
- * Centralised error handler. Normalises Zod, Mongoose, and known duplicate-key
+ * Centralized error handler. Normalizes Zod, Mongoose, and known duplicate-key
  * errors into the standard envelope: { statusCode, success, message, data }.
  */
-export const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const globalErrorHandler: ErrorRequestHandler = (
+  err,
+  _req,
+  res,
+  _next,
+) => {
   let statusCode = 500;
   let message = 'Internal server error';
   let data: unknown = null;
@@ -26,7 +31,11 @@ export const globalErrorHandler: ErrorRequestHandler = (err, _req, res, _next) =
   } else if (err instanceof mongoose.Error.ValidationError) {
     statusCode = 400;
     message = err.message;
-  } else if (typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000) {
+  } else if (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { code?: number }).code === 11000
+  ) {
     statusCode = 409;
     message = 'Duplicate resource';
   } else if (err instanceof Error) {

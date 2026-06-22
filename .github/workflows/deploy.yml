@@ -1,0 +1,137 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ---- detect which service changed (native per-job path filter, no 3rd-party action) ----
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      client: ${{ steps.detect.outputs.client }}
+      server: ${{ steps.detect.outputs.server }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history so we can diff against the pre-push SHA
+
+      - name: Detect changed paths
+        id: detect
+        run: |
+          set -euo pipefail
+
+          # Manual run or first push → build both (no reliable base to diff).
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "client=true" >> "$GITHUB_OUTPUT"
+            echo "server=true" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch → building both."; exit 0
+          fi
+
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "client=true"  >> "$GITHUB_OUTPUT"
+            echo "server=true"  >> "$GITHUB_OUTPUT"
+            echo "First push on branch → building both."; exit 0
+          fi
+
+          CHANGED="$(git diff --name-only "$BEFORE" "${{ github.sha }}")"
+          echo "Changed files:"; echo "$CHANGED"
+
+          if echo "$CHANGED" | grep -q '^client/'; then C=true; else C=false; fi
+          if echo "$CHANGED" | grep -q '^server/'; then S=true; else S=false; fi
+          echo "client=$C" >> "$GITHUB_OUTPUT"
+          echo "server=$S" >> "$GITHUB_OUTPUT"
+          echo "→ client=$C  server=$S"
+
+  # ---- client: vite build (VITE_API_URL baked) → nginx ----
+  build-client:
+    needs: changes
+    if: ${{ needs.changes.outputs.client == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags + labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/mahmud035/quran-client # HARDCODED — never github.repository
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build + push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./client # monorepo: subdir context, NOT repo root
+          push: true
+          build-args: |
+            VITE_API_URL=https://lab-quran-api.halalaura.co.uk/api
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          platforms: linux/amd64 # box + runners are amd64; no arm64
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
+
+  # ---- server: tsc → node ----
+  build-server:
+    needs: changes
+    if: ${{ needs.changes.outputs.server == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags + labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/mahmud035/quran-server # HARDCODED
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build + push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./server
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          platforms: linux/amd64
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
